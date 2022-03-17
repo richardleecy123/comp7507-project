@@ -1,0 +1,88 @@
+Preprocessing.ipnyb
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+df['publish_time'] = df.apply(lambda r: datetime.strptime(r['publish_time'],'%Y-%m-%dT%H:%M:%S.%fZ'), axis=1)
+df['channel_rank'] = df.groupby('channel_title')['views'].transform(np.sum).rank(ascending=False, method='dense')
+
+
+Graph.py
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+from datetime import datetime
+import plotly.express as px
+
+df_subset = df.copy()
+ALL_CATEGORY = set(df_subset['category_id'])
+ALL_REGION = ['CA']
+ALL_CHANNEL = set(df_subset['channel_title'])
+
+def setDataFilter(time_range=(datetime(2015, 1, 1, 0, 0, 0),datetime(2020, 1, 1, 0, 0, 0)), category=ALL_CATEGORY, region=ALL_REGION, rank_range=(0,1), channel=ALL_CHANNEL):
+  df_filtered = df.copy()
+  
+  #publish time range
+  if time_range!=(datetime(2015, 1, 1, 0, 0, 0),datetime(2020, 1, 1, 0, 0, 0)):
+    df_filtered = df_filtered[df_filtered.apply(lambda r: r['publish_time']>=time_range[0] and r['publish_time']<=time_range[1], axis=1)]
+
+  #category filter
+  if category != ALL_CATEGORY:
+    df_filtered = df_filtered[df_filtered['category_id'].isin(category)]
+
+  #region filter
+  if region != ALL_REGION:
+    df_filtered = df_filtered[df_filtered['region'].isin(region)]
+
+  #channel rank with in range
+  if rank_range!=(0,1):
+    num_channel = len(set(df_filtered['channel_title']))
+    df_filtered = df_filtered[df_filtered['channel_rank'].between(num_channel*rank_range[0],num_channel*rank_range[1])]
+
+  #channel filter
+  if channel!=ALL_CHANNEL:
+    df_filtered = df_filtered[df_filtered['channel_title'].isin(channel)]
+
+  return df_filtered
+
+def drawPublishTimeDistribution():
+  df_filtered = df_subset.copy()
+  try:
+    df_filtered['publish_time_hour'] = df_filtered.apply(lambda r: r['publish_time'].hour, axis=1)
+  except:
+    df_filtered['publish_time_hour'] = None
+  fig = px.histogram(df_filtered, x="publish_time_hour", color="category_id")
+  return fig
+
+def drawNumVideoTrend():
+  df_video_trend = df_subset.groupby(['category_id',pd.Grouper(key='publish_time', axis=0, freq='D')]).count()
+  df_video_trend = pd.DataFrame(df_video_trend.to_records())
+  fig = px.line(df_video_trend, x='publish_time', y='video_id', color='category_id')
+  return fig
+
+def drawViewVideoTrend():
+  df_video_trend = df_subset.groupby(['category_id',pd.Grouper(key='publish_time', axis=0, freq='D')]).sum()
+  df_video_trend = pd.DataFrame(df_video_trend.to_records())
+  fig = px.line(df_video_trend, x='publish_time', y='views', color='category_id')
+  return fig
+
+def drawLikeVideoTrend():
+  df_video_trend = df_subset.groupby(['category_id',pd.Grouper(key='publish_time', axis=0, freq='D')]).sum()
+  df_video_trend = pd.DataFrame(df_video_trend.to_records())
+  fig = px.line(df_video_trend, x='publish_time', y='likes', color='category_id')
+  return fig
+
+def drawDislikeVideoTrend():
+  df_video_trend = df_subset.groupby(['category_id',pd.Grouper(key='publish_time', axis=0, freq='D')]).sum()
+  df_video_trend = pd.DataFrame(df_video_trend.to_records())
+  fig = px.line(df_video_trend, x='publish_time', y='dislikes', color='category_id')
+  return fig
+
+
+
+
+'''
+setDataFilter pass in five variables : 
+1. time_range=(datetime(lower), datetime(upper))     e.g. (datetime(2017, 11, 1, 0, 0, 0),datetime(2020, 1, 1, 0, 0, 0))
+2. category=[]                      e.g. ['sport','news']
+3. region=[]                       e.g. ['US','JP']
+4. rank_range=(lower, upper)               e.g. (0.8,1)
+5. channel=[]                       e.g. ['EminemVEVO','iDubbbzTV']
+'''
+df_subset = setDataFilter(channel=['EminemVEVO'])
+drawPublishTimeDistribution()
