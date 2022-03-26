@@ -69,6 +69,10 @@ def drawWordCloud(df_subset):
     tag_list = df_subset.apply(lambda r: tagsList(r['tags']), axis=1)
     
     tag_all = [x for y in tag_list for x in y]
+    
+    #with open('tags.txt', 'w') as f:
+    #  for item in tag_all:
+    #      f.write("%s\n" % item)
 
     #WordCloud
     wc = WordCloud(width=1200, height=500, 
